@@ -65,41 +65,42 @@ Spark 분산 처리로 극복하는 과정을 담았습니다.
 
 ---
 
-## 주요 기능
+## 프로젝트 목적
 
-### 1. 대용량 카드 거래 데이터 배치 처리
-- 100만~500만 건 카드 거래 데이터 생성 및 처리
-- 일별/카테고리별 거래 집계 (거래 건수, 총액, 평균)
-- CSV -> Parquet 변환으로 저장 효율화
+> 실무에서 Oracle/MySQL 기반으로 운영하던 카드 거래 배치 처리를  
+> **Spark + S3 + Airflow + Hive** 기반 클라우드 아키텍처로 전환하는 과정을 구현한 프로젝트입니다.  
+> 배치 로직 자체는 실무 경험에서 이미 다루고 있으며, 이 프로젝트는 **기술 전환 역량**에 초점을 맞춥니다.
 
-### 2. 분기별 자동 집계 (1/4/7/10월)
-- 현대카드 실무 분기 배치 프로세스 시뮬레이션
-- 분기별 카테고리/가맹점 매출 리포트 자동 생성
-- 전분기 대비 증감률 분석
+## 핵심 기술 포인트
 
-### 3. 데이터 품질 검증 자동화
-- Null/결측값 검사
-- 중복 거래 탐지
-- 금액 범위 이상치 검출
-- 날짜 유효성 검증
-- 검증 리포트 자동 생성
+### 1. Spark 분산 처리 + S3 연동 파이프라인
+- PySpark로 CSV → Parquet 변환, Snappy 압축 적용
+- `s3a://` 프로토콜로 S3 직접 읽기/쓰기 (hadoop-aws 3.4.2)
+- LocalStack으로 AWS 계정 없이 S3 연동 검증 → 동일 코드 EMR에서 그대로 동작
+- 입력 경로 기반 로컬/S3 모드 자동 감지 (`create_spark_session`)
 
-### 4. 성능 최적화
-- Parquet 파티셔닝으로 쿼리 성능 최적화
-- 브로드캐스트 조인, 캐싱, 리파티션 전략 적용
-- 최적화 전후 성능 비교 리포트
+### 2. Spark 성능 최적화 전략 비교
+- CSV vs Parquet 읽기 성능 벤치마크 (95.3% 단축)
+- 브로드캐스트 조인 vs 일반 조인 (86.9% 단축)
+- 캐싱 적용 전후 비교, 리파티셔닝 전략
+- 파티셔닝 키 설계 (txn_year/txn_month, region)
 
-### 5. Airflow DAG 스케줄링
-- 4개 Spark Job을 DAG로 정의 (의존성 기반 순차 실행)
-- 품질 검증 PASS 시에만 ETL 진행 (BranchPythonOperator)
-- 매일 새벽 2시 (KST) 자동 실행, 실패 시 5분 간격 2회 재시도
-- EMR Step 제출용 설정 포함 (EmrAddStepsOperator 전환 가능)
+### 3. Airflow DAG 워크플로우 오케스트레이션
+- 4개 Spark Job 의존성 기반 순차 실행 (품질검증 → ETL → 분기배치 → 벤치마크)
+- `BranchPythonOperator`로 품질 검증 실패 시 파이프라인 자동 중단
+- 매일 KST 02:00 스케줄, 실패 시 5분 간격 2회 재시도
+- EMR `EmrAddStepsOperator` 전환 가능한 구조로 설계
 
-### 6. Hive 데이터 카탈로그 (Impala / Athena 호환)
-- Spark ETL 출력 Parquet → Hive External Table로 등록 (8개 테이블)
-- 파티션 테이블 지원 (partitioned_transactions: txn_year/txn_month)
-- Impala INVALIDATE METADATA, Athena Glue Catalog 호환
+### 4. Hive 데이터 카탈로그 + Impala / Athena 호환
+- Spark ETL 출력 Parquet → Hive External Table 8개 등록
+- 파티션 테이블 설계 (`PARTITIONED BY txn_year, txn_month` + `MSCK REPAIR`)
+- Impala `INVALIDATE METADATA`, Athena Glue Catalog 호환 DDL
 - 분석 쿼리 예시 포함 (일별 TOP 5, 시간대별 비중, 지역별 추이)
+
+### 5. EMR 클러스터 배포 설정
+- EMR 6.15 클러스터 구성 (m5.xlarge Master 1 + Core 2 Spot)
+- spark-submit `--deploy-mode cluster --master yarn` 실행 설정
+- 클러스터 생성 → Job 제출 → 종료까지 자동화 스크립트 구성
 
 ---
 
