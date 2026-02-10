@@ -1,0 +1,77 @@
+{
+  "Name": "CardTransactionETL",
+  "ReleaseLabel": "emr-6.15.0",
+  "Applications": [
+    { "Name": "Spark" },
+    { "Name": "Hadoop" }
+  ],
+  "Instances": {
+    "InstanceGroups": [
+      {
+        "Name": "Master",
+        "Market": "ON_DEMAND",
+        "InstanceRole": "MASTER",
+        "InstanceType": "m5.xlarge",
+        "InstanceCount": 1
+      },
+      {
+        "Name": "Core",
+        "Market": "SPOT",
+        "InstanceRole": "CORE",
+        "InstanceType": "m5.xlarge",
+        "InstanceCount": 2,
+        "BidPrice": "OnDemandPrice"
+      }
+    ],
+    "Ec2SubnetId": "subnet-XXXXXXXXX",
+    "Ec2KeyName": "your-key-pair",
+    "KeepJobFlowAliveWhenNoSteps": false,
+    "TerminationProtected": false
+  },
+  "ServiceRole": "EMR_DefaultRole",
+  "JobFlowRole": "EMR_EC2_DefaultRole",
+  "LogUri": "s3://your-card-etl-project/logs/",
+  "Configurations": [
+    {
+      "Classification": "spark-defaults",
+      "Properties": {
+        "spark.executor.memory": "4g",
+        "spark.executor.cores": "2",
+        "spark.driver.memory": "4g",
+        "spark.sql.shuffle.partitions": "200",
+        "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+        "spark.sql.parquet.compression.codec": "snappy",
+        "spark.sql.adaptive.enabled": "true",
+        "spark.sql.adaptive.coalescePartitions.enabled": "true",
+        "spark.dynamicAllocation.enabled": "true",
+        "spark.dynamicAllocation.minExecutors": "1",
+        "spark.dynamicAllocation.maxExecutors": "10"
+      }
+    },
+    {
+      "Classification": "spark-env",
+      "Properties": {},
+      "Configurations": [
+        {
+          "Classification": "export",
+          "Properties": {
+            "PYSPARK_PYTHON": "/usr/bin/python3"
+          }
+        }
+      ]
+    }
+  ],
+  "BootstrapActions": [
+    {
+      "Name": "Install Python Dependencies",
+      "ScriptBootstrapAction": {
+        "Path": "s3://your-card-etl-project/bootstrap/install_dependencies.sh"
+      }
+    }
+  ],
+  "Tags": [
+    { "Key": "Project", "Value": "CardTransactionETL" },
+    { "Key": "Environment", "Value": "Development" },
+    { "Key": "Owner", "Value": "jimin" }
+  ]
+}

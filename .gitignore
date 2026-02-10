@@ -1,0 +1,43 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Spark
+*.jar
+metastore_db/
+spark-warehouse/
+derby.log
+
+# 데이터 파일 (용량 큼)
+data/*.csv
+data/*.parquet
+
+# 출력 결과
+output/
+*.parquet
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 환경
+.env
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AWS
+.cluster_id
+
+# 로그
+logs/
+*.log

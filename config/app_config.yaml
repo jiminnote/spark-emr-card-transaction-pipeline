@@ -1,0 +1,66 @@
+# 애플리케이션 설정
+app:
+  name: "CardTransactionETL"
+  version: "1.0.0"
+  description: "카드 거래 데이터 배치 처리 파이프라인"
+
+# 데이터 생성 설정
+data_generation:
+  default_records: 1000000
+  default_customers: 10000
+  start_date: "2024-01-01"
+  end_date: "2024-12-31"
+  random_seed: 42
+
+# S3 설정
+s3:
+  bucket: "your-card-etl-project"
+  input_prefix: "input/"
+  output_prefix: "output/"
+  scripts_prefix: "scripts/"
+  logs_prefix: "logs/"
+  bootstrap_prefix: "bootstrap/"
+
+# EMR 클러스터 설정
+emr:
+  release_label: "emr-6.15.0"
+  master_instance_type: "m5.xlarge"
+  core_instance_type: "m5.xlarge"
+  core_instance_count: 2
+  use_spot: true
+  key_pair: "your-key-pair"
+  subnet_id: "subnet-XXXXXXXXX"
+  log_uri: "s3://your-card-etl-project/logs/"
+
+# Spark 설정
+spark:
+  executor_memory: "4g"
+  executor_cores: 2
+  driver_memory: "4g"
+  shuffle_partitions: 200
+  compression: "snappy"
+  adaptive_enabled: true
+
+# 데이터 품질 임계값
+quality:
+  null_threshold_percent: 1.0
+  duplicate_threshold: 0
+  amount_max: 10000000
+  valid_categories:
+    - "식비"
+    - "교통"
+    - "쇼핑"
+    - "문화"
+    - "의료"
+    - "교육"
+    - "통신"
+    - "보험"
+  valid_statuses:
+    - "approved"
+    - "declined"
+    - "cancelled"
+
+# 배치 스케줄
+batch_schedule:
+  quarterly_months: [1, 4, 7, 10]
+  target_year: 2024

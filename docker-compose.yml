@@ -1,0 +1,29 @@
+# LocalStack - 로컬 AWS S3 에뮬레이션
+# AWS 계정 없이 S3 버킷을 생성하고 Spark와 연동합니다.
+#
+# 사용법:
+#   docker compose up -d        # 시작
+#   docker compose down         # 종료
+#   docker compose logs -f      # 로그 확인
+
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: card-pipeline-localstack
+    ports:
+      - "4566:4566"       # S3 API 엔드포인트
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=ap-northeast-2
+      - AWS_DEFAULT_REGION=ap-northeast-2
+      - DEBUG=0
+    volumes:
+      - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  localstack_data:
