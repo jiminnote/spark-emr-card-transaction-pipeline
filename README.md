@@ -1,13 +1,8 @@
 # 카드 거래 데이터 배치 처리 파이프라인 (Spark + AWS EMR)
 
 ## 프로젝트 개요
-
-현대카드 분기별 정기 배치 운영 경험을 바탕으로,
-AWS EMR과 Apache Spark를 활용한 대용량 카드 거래 데이터
-배치 처리 파이프라인을 구현한 프로젝트입니다.
-
-기존 Oracle/MySQL 기반 배치 처리에서 느꼈던 성능 한계를
-Spark 분산 처리로 극복하는 과정을 담았습니다.
+AWS EMR과 Apache Spark를 활용한 대용량 카드 거래 데이터 배치 처리 파이프라인을 구현한 프로젝트입니다.
+기존 Oracle/MySQL 기반 배치 처리에서 느꼈던 성능 한계를 Spark 분산 처리로 극복하는 과정을 담았습니다.
 
 ---
 
@@ -29,31 +24,7 @@ Spark 분산 처리로 극복하는 과정을 담았습니다.
 
 ## 아키텍처
 
-```
-┌─────────────────────┐     ┌───────────────────────────┐     ┌─────────────────────┐
-│  S3 Input Bucket    │     │  Spark (Local / EMR)      │     │  S3 Output Bucket   │
-│  (LocalStack/AWS)   │     │                           │     │  (LocalStack/AWS)   │
-│                     │     │  ┌─────────────────────┐  │     │                     │
-│  card_transactions  │────▶│  │ Data Quality Check  │  │     │  quality_report/    │
-│  .csv               │     │  │ (data_quality_check) │──┼────▶│  daily_summary/     │
-│                     │     │  └──────────┬──────────┘  │     │  merchant_ranking/  │
-│  scripts/           │     │             │             │     │  hourly_pattern/    │
-│  ├── spark_etl.py   │     │  ┌──────────▼──────────┐  │     │  regional_analysis/ │
-│  ├── quarterly_     │     │  │ Spark ETL Pipeline  │  │     │  monthly_trend/     │
-│  │   batch.py       │     │  │ (spark_etl.py)      │──┼────▶│  partitioned_txn/   │
-│  └── ...            │     │  └──────────┬──────────┘  │     │  quarterly/         │
-│                     │     │             │             │     │  optimized/         │
-└─────────────────────┘     │  ┌──────────▼──────────┐  │     │  benchmark_report/  │
-                            │  │ Quarterly Batch     │  │     │                     │
-  ┌─────────────────────┐   │  │ (quarterly_batch.py)│──┼────▶│                     │
-  │  Docker (LocalStack)│   │  └──────────┬──────────┘  │     └─────────────────────┘
-  │  S3 API :4566       │   │             │             │
-  │  aws s3 호환         │   │  ┌──────────▼──────────┐  │
-  └─────────────────────┘   │  │ Performance Bench   │  │
-                            │  │ (performance_opt.)  │──┘
-                            │  └─────────────────────┘  │
-                            └───────────────────────────┘
-```
+<img width="2368" height="1792" alt="Gemini_Generated_Image_p8k4nhp8k4nhp8k4" src="https://github.com/user-attachments/assets/57ab4dbe-2fa9-4777-b250-d293c835c431" />
 
 - **LocalStack**: AWS 계정 없이 S3를 로컬에서 에뮬레이션 (Docker)
 - **Spark**: `s3a://` 프로토콜로 S3 버킷에서 직접 읽기/쓰기
@@ -61,15 +32,12 @@ Spark 분산 처리로 극복하는 과정을 담았습니다.
 - **Airflow**: 4개 Spark Job을 DAG로 스케줄링 (품질검증 → ETL → 분기배치 → 벤치마크)
 - **Hive**: Parquet 출력을 External Table로 등록 → Impala / Athena에서 SQL 조회
 
-상세 아키텍처는 [docs/architecture.md](docs/architecture.md) 참고
-
 ---
 
 ## 프로젝트 목적
 
 > 실무에서 Oracle/MySQL 기반으로 운영하던 카드 거래 배치 처리를  
 > **Spark + S3 + Airflow + Hive** 기반 클라우드 아키텍처로 전환하는 과정을 구현한 프로젝트입니다.  
-> 배치 로직 자체는 실무 경험에서 이미 다루고 있으며, 이 프로젝트는 **기술 전환 역량**에 초점을 맞춥니다.
 
 ## 핵심 기술 포인트
 
@@ -245,8 +213,6 @@ bash deploy/teardown_cluster.sh
 | Parquet 파티셔닝 적용 | 쿼리 시간 70% 단축 |
 | 데이터 압축률 | CSV 대비 75% 절감 |
 
-상세 성능 리포트는 [docs/performance_report.md](docs/performance_report.md) 참고
-
 ---
 
 ## AWS 비용
@@ -266,20 +232,13 @@ S3 스토리지 (1GB)                       = 거의 무료
 
 ## 배운 점
 
-- 현대카드 실무에서 Oracle/MySQL 기반 배치를 운영하며 느꼈던 성능 한계를
-  Spark의 분산 처리로 극복할 수 있었습니다.
-- **LocalStack으로 S3를 로컬에서 에뮬레이션**하여, AWS 계정 없이도
-  `s3a://` 프로토콜 기반 Spark ↔ S3 연동을 실제로 구현하고 검증했습니다.
-- EMR 클러스터 구성부터 Job 제출, 모니터링까지 클라우드 기반 데이터 처리
-  전체 라이프사이클을 경험했습니다.
-- Parquet 포맷과 파티셔닝 전략이 실무에서 얼마나 큰 성능 차이를 만드는지
-  직접 확인할 수 있었습니다.
-- Spark 4.x의 ANSI 모드, 타입 추론 변경 등 버전 간 호환성 이슈를
-  해결하며 실무 트러블슈팅 역량을 키웠습니다.
-- **Airflow DAG**로 Spark Job 간 의존성과 재시도 정책을 정의하여,
-  운영 환경에서의 워크플로우 관리 방법을 학습했습니다.
-- **Hive External Table**로 Parquet 데이터를 등록하고,
-  Impala/Athena에서 SQL로 즉시 조회 가능한 데이터 카탈로그를 구성했습니다.
+- Oracle/MySQL 기반 배치를 운영하며 느꼈던 성능 한계를 Spark의 분산 처리로 극복할 수 있었습니다.
+- **LocalStack으로 S3를 로컬에서 에뮬레이션**하여, AWS 계정 없이도 `s3a://` 프로토콜 기반 Spark ↔ S3 연동을 실제로 구현하고 검증했습니다.
+- EMR 클러스터 구성부터 Job 제출, 모니터링까지 클라우드 기반 데이터 처리 전체 라이프사이클을 경험했습니다.
+- Parquet 포맷과 파티셔닝 전략이 실무에서 얼마나 큰 성능 차이를 만드는지 직접 확인할 수 있었습니다.
+- Spark 4.x의 ANSI 모드, 타입 추론 변경 등 버전 간 호환성 이슈를 해결하며 실무 트러블슈팅 역량을 키웠습니다.
+- **Airflow DAG**로 Spark Job 간 의존성과 재시도 정책을 정의하여, 운영 환경에서의 워크플로우 관리 방법을 학습했습니다.
+- **Hive External Table**로 Parquet 데이터를 등록하고, Impala/Athena에서 SQL로 즉시 조회 가능한 데이터 카탈로그를 구성했습니다.
 
 ---
 
