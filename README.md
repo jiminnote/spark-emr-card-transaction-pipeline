@@ -74,88 +74,27 @@
 
 ## 실행 방법
 
-### 1. 데이터 생성
+### 데이터 생성
 
 ```bash
 python data/generate_data.py --records 1000000 --output data/card_transactions.csv
 ```
+## 상세 문서
 
-### 2. 로컬 Spark 실행
-
-```bash
-# 메인 ETL
-spark-submit scripts/spark_etl.py --input data/card_transactions.csv --output output/
-
-# 데이터 품질 검증
-spark-submit scripts/data_quality_check.py --input data/card_transactions.csv
-
-# 분기별 배치
-spark-submit scripts/quarterly_batch.py --input data/card_transactions.csv --output output/quarterly/
-
-# 성능 최적화 테스트
-spark-submit scripts/performance_optimizer.py --input data/card_transactions.csv --output output/optimized/
-```
-
-### 3. S3 연동 실행 (LocalStack - AWS 계정 불필요)
-
-```bash
-# LocalStack 시작 (Docker)
-docker compose up -d
-
-# S3 버킷 생성 및 데이터 업로드
-python deploy/localstack_setup.py
-
-# S3 연동 전체 파이프라인 실행
-bash deploy/run_pipeline_s3.sh
-
-# S3 출력 결과 확인
-python deploy/verify_s3_output.py
-
-# 종료
-docker compose down
-```
-
-### 5. AWS EMR 실행 (실제 AWS 배포)
-
-```bash
-# S3에 데이터 및 스크립트 업로드
-bash deploy/upload_to_s3.sh
-
-# EMR 클러스터 생성
-bash deploy/create_emr_cluster.sh
-
-# Spark Job 제출
-bash deploy/submit_spark_job.sh
-
-# 작업 완료 후 클러스터 종료 (비용 절감)
-bash deploy/teardown_cluster.sh
-```
-
+- [아키텍처 설명](docs/architecture.md)
+- [성능 분석 리포트](docs/performance_report.md)
+- [Cloudera/Impala 연동](docs/on-prem-setup.md)
 ---
 
 ## 성능 결과
 
-### 로컬 실행 (S3 연동, 10만 건)
-
-| 항목 | 결과 |
-|------|------|
-| 데이터 규모 | 10만 건 카드 거래 (10.9 MB) |
-| 스토리지 | S3 (LocalStack) → s3a:// 프로토콜 |
-| CSV → Parquet 읽기 개선 | **95.3% 단축** |
-| 브로드캐스트 조인 개선 | **86.9% 단축** |
-| 캐싱 효과 (2회차) | **55.8% 단축** |
-| S3 출력 | 1,107 파일, 19.8 MB (Parquet) |
-| 전체 파이프라인 | 약 97초 (4개 Job) |
-
-### EMR 예상 (100만 건)
-
-| 항목 | 결과 |
-|------|------|
+| 지표 | 결과 |
+|-----|------|
 | 데이터 규모 | 100만 건 카드 거래 |
-| EMR 클러스터 | m5.xlarge 3대 (Master 1, Core 2) |
-| 처리 시간 (전체 ETL) | 약 2분 |
-| Parquet 파티셔닝 적용 | 쿼리 시간 70% 단축 |
-| 데이터 압축률 | CSV 대비 75% 절감 |
+| Parquet 압축 | CSV 대비 75% 절감 |
+| 파티셔닝 쿼리 | 70% 성능 개선 |
+| 전체 파이프라인 | 약 5분 (LocalStack) |
+
 
 ---
 
